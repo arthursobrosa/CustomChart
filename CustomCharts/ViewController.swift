@@ -36,6 +36,17 @@ class ViewController: UIViewController {
         return chart
     }()
     
+    private lazy var reloadButton: UIButton = {
+        let button = UIButton(configuration: .filled())
+        button.setTitle("Reload data", for: .normal)
+        
+        button.addTarget(self, action: #selector(didTapReloadButton), for: .touchUpInside)
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        
+        return button
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -71,22 +82,41 @@ class ViewController: UIViewController {
         let randomData = self.viewModel.getRandomData()
         self.customChart.setData(randomData, sorter: \.date, mapTo: \.percentage)
     }
+    
+    @objc private func didTapReloadButton() {
+        let randomData = self.viewModel.getRandomData()
+        self.customChart.setData(randomData, sorter: \.date, mapTo: \.percentage)
+        self.customChart.reloadCollection()
+    }
 }
 
 private extension ViewController {
     func setupUI() {
-        self.view.addSubview(segmentedControl)
-        self.view.addSubview(customChart)
+        let stack = UIView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.addSubview(segmentedControl)
+        stack.addSubview(customChart)
+        
+        self.view.addSubview(stack)
+        self.view.addSubview(reloadButton)
         
         NSLayoutConstraint.activate([
-            segmentedControl.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor),
-            segmentedControl.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 20),
-            segmentedControl.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -20),
+            stack.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            stack.heightAnchor.constraint(equalTo: self.view.heightAnchor, multiplier: 0.25),
             
-            customChart.widthAnchor.constraint(equalTo: self.view.widthAnchor, multiplier: 340/390),
+            segmentedControl.topAnchor.constraint(equalTo: stack.topAnchor),
+            segmentedControl.leadingAnchor.constraint(equalTo: stack.leadingAnchor, constant: 20),
+            segmentedControl.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -20),
+            
+            customChart.widthAnchor.constraint(equalTo: stack.widthAnchor, multiplier: 340/390),
             customChart.heightAnchor.constraint(equalTo: customChart.widthAnchor, multiplier: 163/340),
-            customChart.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            customChart.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 20)
+            customChart.centerXAnchor.constraint(equalTo: stack.centerXAnchor),
+            customChart.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 20),
+            
+            reloadButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            reloadButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor)
         ])
     }
 }

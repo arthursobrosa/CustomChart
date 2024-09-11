@@ -8,17 +8,11 @@
 import UIKit
 
 class CustomChart: UIView {
-    private var limit: Int {
-        didSet {
-            self.reloadCollection()
-        }
-    }
+    private var limit: Int
     
-    private var data = [any Comparable]() {
-        didSet {
-            self.addCollectionView()
-        }
-    }
+    private var rawData = [any Comparable]()
+    private var filteredData = [any Comparable]()
+    private var dataSize = Int()
     
     private let percentageIndexesStack: UIView = {
         let stack = UIView()
@@ -107,7 +101,7 @@ class CustomChart: UIView {
         }
     }
     
-    private func reloadCollection() {
+   func reloadCollection() {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             
@@ -117,9 +111,15 @@ class CustomChart: UIView {
     
     func changeLimit(to limit: Int) {
         self.limit = limit
+        self.filterData()
+        self.reloadCollection()
     }
     
     func setData<T, U, V>(_ data: [T], sorter keyPath: KeyPath<T, U>, mapTo resultKeyPath: KeyPath<T, V>, ascending: Bool = true) where U: Comparable, V: Comparable {
+        self.dataSize = 0
+        self.rawData = []
+        self.filteredData = []
+        
         let comparison: (T, T) -> Bool = ascending ? {
             $0[keyPath: keyPath] < $1[keyPath: keyPath]
         } : {
@@ -128,20 +128,16 @@ class CustomChart: UIView {
                 
         let sortedData = data.sorted(by: comparison).map { $0[keyPath: resultKeyPath] }
         
-        self.data = self.limit <= data.count ?
-            Array(sortedData.prefix(self.limit)) :
-            sortedData
+        self.rawData = sortedData
+        self.dataSize = data.count
+        
+        self.filterData()
     }
     
-    private func addCollectionView() {
-        self.percentagesContainerView.addSubview(percentagesCollectionView)
-        
-        NSLayoutConstraint.activate([
-            percentagesCollectionView.widthAnchor.constraint(equalTo: percentagesContainerView.widthAnchor),
-            percentagesCollectionView.heightAnchor.constraint(equalTo: percentagesContainerView.heightAnchor),
-            percentagesCollectionView.centerXAnchor.constraint(equalTo: percentagesContainerView.centerXAnchor),
-            percentagesCollectionView.centerYAnchor.constraint(equalTo: percentagesContainerView.centerYAnchor)
-        ])
+    private func filterData() {
+        self.filteredData = self.limit <= self.dataSize ?
+            Array(self.rawData.prefix(self.limit)) :
+            self.rawData
     }
 }
 
@@ -149,6 +145,7 @@ private extension CustomChart {
     func setupUI() {
         self.addSubview(percentageIndexesStack)
         self.addSubview(percentagesContainerView)
+        self.addSubview(percentagesCollectionView)
         self.addSubview(dividerView)
         
         NSLayoutConstraint.activate([
@@ -157,11 +154,15 @@ private extension CustomChart {
             percentageIndexesStack.topAnchor.constraint(equalTo: self.topAnchor),
             percentageIndexesStack.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             
-            percentagesContainerView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 288/344),
             percentagesContainerView.heightAnchor.constraint(equalTo: percentagesContainerView.widthAnchor, multiplier: 132/288),
             percentagesContainerView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 35),
             percentagesContainerView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -21),
             percentagesContainerView.topAnchor.constraint(equalTo: self.topAnchor, constant: 6),
+            
+            percentagesCollectionView.widthAnchor.constraint(equalTo: percentagesContainerView.widthAnchor),
+            percentagesCollectionView.heightAnchor.constraint(equalTo: percentagesContainerView.heightAnchor),
+            percentagesCollectionView.centerXAnchor.constraint(equalTo: percentagesContainerView.centerXAnchor),
+            percentagesCollectionView.centerYAnchor.constraint(equalTo: percentagesContainerView.centerYAnchor),
             
             dividerView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 309/344),
             dividerView.heightAnchor.constraint(equalTo: dividerView.widthAnchor, multiplier: 2/309),
@@ -190,8 +191,8 @@ extension CustomChart: UICollectionViewDataSource, UICollectionViewDelegate, UIC
         var percentage = Double()
         var isEmpty = true
         
-        if row < self.data.count,
-           let percent = self.data[row] as? Double {
+        if row < self.filteredData.count,
+           let percent = self.filteredData[row] as? Double {
             isEmpty = false
             percentage = percent
         }
@@ -262,6 +263,10 @@ class PercentageCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        
+        self.contentView.subviews.forEach { subview in
+            subview.removeFromSuperview()
+        }
         
         self.percentage = nil
         self.isEmpty = nil
