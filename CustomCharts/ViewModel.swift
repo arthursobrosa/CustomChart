@@ -8,7 +8,7 @@
 import Foundation
 
 class ViewModel {
-    var limits: [Int] = [7, 15, 30]
+    var limits: [Int] = [10, 15, 20]
     lazy var selectedLimit = self.limits[0]
     
     var limitsIndexes = [Int]()

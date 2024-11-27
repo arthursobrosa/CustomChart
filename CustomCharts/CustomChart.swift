@@ -57,6 +57,14 @@ class CustomChart: UIView {
         return view
     }()
     
+    private let dayIndicatorStack: UIView = {
+        let stack = UIView()
+        
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        
+        return stack
+    }()
+    
     init(frame: CGRect = .zero, limit: Int) {
         self.limit = limit
         
@@ -214,7 +222,65 @@ extension CustomChart: UICollectionViewDataSource, UICollectionViewDelegate, UIC
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         let numberOfColumns = self.limit + (self.limit - 1)
         
-        return collectionView.bounds.width / Double(numberOfColumns)
+        let lineSpacing = collectionView.bounds.width / Double(numberOfColumns)
+        
+        self.setDayIndicatorStack(for: lineSpacing)
+        
+        return lineSpacing
+    }
+    
+    private func setDayIndicatorStack(for lineSpacing: Double) {
+        dayIndicatorStack.subviews.forEach { subview in
+            subview.removeFromSuperview()
+        }
+        
+        dayIndicatorStack.removeFromSuperview()
+        
+        self.addSubview(dayIndicatorStack)
+        
+        NSLayoutConstraint.activate([
+            dayIndicatorStack.topAnchor.constraint(equalTo: dividerView.bottomAnchor, constant: 10),
+            dayIndicatorStack.centerXAnchor.constraint(equalTo: percentagesContainerView.centerXAnchor),
+            dayIndicatorStack.widthAnchor.constraint(equalTo: percentagesContainerView.widthAnchor, constant: -lineSpacing/4)
+        ])
+        
+        var indicators = [Int]()
+        
+        switch self.limit {
+            case 10:
+                indicators = [1, 5, 10]
+            case 15:
+                indicators = [1, 5, 10, 15]
+            case 20:
+                indicators = [1, 5, 10, 15, 20]
+            default:
+                break
+        }
+        
+        
+        for (index, indicator) in indicators.enumerated() {
+            var spacing = Double()
+            
+            if index > 0 {
+                spacing = Double(indicators[index] - indicators[index - 1]) * lineSpacing * 2
+                let addition: Double = indicator == 10 ? lineSpacing/4 : 0
+                spacing -= addition
+            }
+            
+            let label = UILabel()
+            label.text = "\(indicator)"
+            label.font = .systemFont(ofSize: 13, weight: .semibold)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            
+            dayIndicatorStack.addSubview(label)
+            
+            let previousView = index == 0 ? dayIndicatorStack : dayIndicatorStack.subviews[index - 1]
+            
+            NSLayoutConstraint.activate([
+                label.centerYAnchor.constraint(equalTo: dayIndicatorStack.centerYAnchor),
+                label.leadingAnchor.constraint(equalTo: previousView.leadingAnchor, constant: spacing)
+            ])
+        }
     }
 }
 
